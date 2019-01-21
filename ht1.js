@@ -13,13 +13,17 @@ const orders = [
     { name: 'Window', price: 300, date: '2018-05-05' }
 ];
 
-const filterInvalid = R.filter(order => {
-    return R.allPass([
-        R.hasIn.bind(null, 'price', order),
-        R.hasIn.bind(null, 'name', order),
-        R.hasIn.bind(null, 'date', order),
-    ])(order);
-});
+const isValid = R.allPass([
+    R.hasIn.bind(null, 'price'),
+    R.hasIn.bind(null, 'name'),
+    R.hasIn.bind(null, 'date'),
+]);
+
+const filterInvalid = (orders) => {
+    const invalidOrders = R.filter(order => !isValid(order),  orders);
+    const validOrders = R.filter(order => isValid(order), orders);
+    return { invalidOrders, validOrders }
+};
 
 const capitalizeNames = R.map(order => {
     const words = order.name.split(' ');
@@ -62,12 +66,54 @@ const matrixify = R.pipe(
     R.transpose
 );
 
-const result = R.pipe(
-    filterInvalid, 
+const printValidOrders = (data) => {
+    const dataHeader = data[0];
+    const dataRows = data.slice(1);
+
+    const headerColumns = R.map((date) => {
+        return `<td><b>${date}</b></td>`;
+    }, dataHeader);
+
+    const headerHTML = `<tr>${headerColumns}</tr>`;
+
+    const rowsHTML = R.pipe(
+        R.map((row) => {
+            const columns = R.map((column) => {
+                return `<td>${column.name} - ${column.price} </td>`;
+            }, row)
+            
+            return ['<tr>', ...columns, '</tr>'].join('');
+        }),
+        R.join('')
+    )(dataRows);
+
+    const table = document.createElement('table');
+    table.innerHTML = `${headerHTML}${rowsHTML}`;
+    document.body.appendChild(table);
+};
+
+const printInvalidOrders = (invalidOrders) => {
+    const header = `<h3>Incorrect rows</h3>`;
+
+    const rowsHTML = R.map((order) => {
+        const orderJSON = JSON.stringify(order);
+        return `<div>${orderJSON}</div>,<br>`;
+    }, invalidOrders);
+
+    const incorrectRowsHTML = [header, ...rowsHTML].join('');
+    const incorrectRowsEl = document.createElement('div');
+    incorrectRowsEl.innerHTML = incorrectRowsHTML;
+    document.body.appendChild(incorrectRowsEl);
+}
+
+const {invalidOrders, validOrders} = filterInvalid(orders);
+
+R.pipe(
     capitalizeNames,
     dollarifyPrice,
     groupByDate,
-    matrixify
-)(orders);
+    matrixify,
+    printValidOrders
+)(validOrders);
 
-console.log(result)
+printInvalidOrders(invalidOrders);
