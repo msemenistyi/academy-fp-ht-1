@@ -14,9 +14,9 @@ const orders = [
 ];
 
 const isValid = R.allPass([
-    R.hasIn.bind(null, 'price'),
-    R.hasIn.bind(null, 'name'),
-    R.hasIn.bind(null, 'date'),
+    R.hasIn('price'),
+    R.hasIn('name'),
+    R.hasIn('date'),
 ]);
 
 const filterInvalid = (orders) => {
@@ -32,13 +32,7 @@ const capitalizeNames = R.map(order => {
                 const letters = word.split('');
                 const mapIndexed = R.addIndex(R.map);
                 return R.pipe(
-                    mapIndexed((letter, index) => {
-                        if (index === 0){
-                            return letter.toUpperCase();
-                        } else {
-                            return letter;
-                        }
-                    }),
+                    mapIndexed((letter, index) => index === 0 ? letter.toUpperCase() : letter),
                     R.join('')
                 )(letters);
             }),
@@ -60,15 +54,9 @@ const fillArray = (length, arr) => {
 };
 
 const evenMatrixLength = (matrix) => {
-    const maxLength = R.reduce((acc, value) => {
-        if (value.length > acc){
-            return value.length;
-        } else {
-            return acc;
-        }
-    }, 0, matrix)
-
-    return R.map(fillArray.bind(null, maxLength), matrix);
+    const maxLength = R.reduce((acc, value) => value.length > acc ? value.length : acc, 0, matrix)
+    const curriedFillArray = R.curry(fillArray);
+    return R.map(curriedFillArray(maxLength), matrix);
 }
 
 const matrixify = R.pipe(
