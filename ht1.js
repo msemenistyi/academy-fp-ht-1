@@ -53,16 +53,28 @@ const dollarifyPrice = R.map(order => Object.assign({}, order, {price :`$${order
 
 const groupByDate = R.groupBy(order => order.date);
 
-const fillArray = (arr, length) => {
-    const zeros = Array(length - arr.length);
-    zeros.fill(0);
+const fillArray = (length, arr) => {
+    const elements = Array(length - arr.length);
 
-    return Array.concat(arr, zeros);
+    return arr.concat(elements);
 };
+
+const evenMatrixLength = (matrix) => {
+    const maxLength = R.reduce((acc, value) => {
+        if (value.length > acc){
+            return value.length;
+        } else {
+            return acc;
+        }
+    }, 0, matrix)
+
+    return R.map(fillArray.bind(null, maxLength), matrix);
+}
 
 const matrixify = R.pipe(
     R.toPairs,
     R.map(R.flatten),
+    evenMatrixLength,
     R.transpose
 );
 
@@ -70,16 +82,23 @@ const printValidOrders = (data) => {
     const dataHeader = data[0];
     const dataRows = data.slice(1);
 
-    const headerColumns = R.map((date) => {
+    const headerColumns = R.pipe(
+        R.map((date) => {
         return `<td><b>${date}</b></td>`;
-    }, dataHeader);
+        }),
+        R.join('')
+    )(dataHeader);
 
     const headerHTML = `<tr>${headerColumns}</tr>`;
 
     const rowsHTML = R.pipe(
         R.map((row) => {
             const columns = R.map((column) => {
-                return `<td>${column.name} - ${column.price} </td>`;
+                if (column){
+                    return `<td>${column.name} - ${column.price} </td>`;
+                } else {
+                    return `<td></td>`;
+                }
             }, row)
             
             return ['<tr>', ...columns, '</tr>'].join('');
@@ -97,7 +116,7 @@ const printInvalidOrders = (invalidOrders) => {
 
     const rowsHTML = R.map((order) => {
         const orderJSON = JSON.stringify(order);
-        return `<div>${orderJSON}</div>,<br>`;
+        return `<div>${orderJSON},</div>`;
     }, invalidOrders);
 
     const incorrectRowsHTML = [header, ...rowsHTML].join('');
